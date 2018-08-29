@@ -7,6 +7,7 @@ const { ApiCall } = require('./utils')
 const utils = require('./utils')
 const mongo = require('./mongo')
 let { estEarn, main, failedBids, getAPR } = require('./logics')
+require('heroku-self-ping')("https://botname-comment-bot.herokuapp.com");
 
 //connect to server which is connected to the network/testnet
 const client = new dsteem.Client(rpc_node)
@@ -88,7 +89,7 @@ async function run() {
         }
     }
 
-    console.log('COmment-bidbot running..')
+    console.log('botname-Comment bot running..')
     await getComments().catch(console.error)
 
     function processCommand(optype, target, cash, postInfo) {
@@ -170,6 +171,33 @@ async function run() {
                 }
                 break;
 
+            case 'delegate':
+                const delegatee = BOTNAME;
+                let DelParams, estSBD, estSTEEM, APR, SevDAPR;
+
+                let sclink = `https://steemconnect.com/sign/delegateVestingShares?delegator=username&delegatee=${BOTNAME}&vesting_shares=${cash}%20SP`
+
+                estEarn(cash).then(r => {
+                    estSBD = r.estSBD.toFixed(3);
+                    estSTEEM = r.estSTEEM.toFixed(3);
+                    APR = r.APR.toFixed(2);
+                    SevDAPR = r.SevDAPR.toFixed(2)
+                }).then(() => {
+                    DelParams = {
+                        sclink: sclink,
+                        cash: cash,
+                        parent_author: postInfo.author,
+                        parent_permlink: postInfo.permlink,
+                        estSBD: estSBD,
+                        estSTEEM: estSTEEM,
+                        APR: APR,
+                        SevDAPR: SevDAPR ? SevDAPR : ''
+                    }
+                    sendComment(DelParams, 'delegation')
+                })
+
+                break;
+
 
         }
     }
@@ -205,12 +233,15 @@ async function run() {
                 msg + "Want to earn more with botname? Type <b>@botname !delegate SPYouHave</b> to get estimated earnings in SBD/STEEM \n\n" +
                 "<h6><i>If you love this service, pass your ❤️ by giving this comment an upvote</i></h6>"
 
-        } 
+        } else if (flag === "delegation") {
 
-            body = `Hi @${parent_author}, this is the current status of bot : \n\n` +
-                `<ul><li>Voting power : ${VP}%</li>` + `<li>Time until next vote : ${timeTilFullPower}</li>` + msg
-                + `<li>Vote value : ${voteValue}$</li></ul>`
-        }
+            body = `Click [this link](${sclink}) to delegate an amount of ${cash}SP \n\n` +
+                `Based on current payout, You will receive daily <b>estimated</b> earnings of : \n\n` +
+                `<b>APR/7 days: ${SevDAPR}% || APR/yesterday: ${APR}% || STEEM: ${estSTEEM} || SBD: ${estSBD}</b> \n\n` +
+                "Please note that your profit is affected by current STEEM and SBD price" + promo +
+                "<h6><i>If you love this service, pass your ❤️ by giving this comment an upvote</i></h6>"
+
+        } 
 
         const permlink = Math.random()
             .toString(36)
