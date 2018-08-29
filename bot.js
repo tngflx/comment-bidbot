@@ -198,7 +198,33 @@ async function run() {
 
                 break;
 
+            case 'bid':
 
+                if (target === 'fail') {
+                    let result = failedBids(postInfo.author, /\w+/)
+
+                    console.log(result);
+
+                } else if (target === 'status') {
+
+                    (async () => {
+                        let currROI = await utils.getBotROI().then(r => {
+                            return r
+                        });
+
+                        let statusParams = {
+                            VP: VotingPower,
+                            voteValue: VoteValue,
+                            timeTillFullPower: timeTilFullPower,
+                            currROI: currROI,
+                            parent_author: postInfo.author,
+                            parent_permlink: postInfo.permlink
+                        }
+
+                        await sendComment(statusParams, 'status')
+                    })();
+                }
+                break;
         }
     }
 
@@ -241,7 +267,18 @@ async function run() {
                 "Please note that your profit is affected by current STEEM and SBD price" + promo +
                 "<h6><i>If you love this service, pass your ❤️ by giving this comment an upvote</i></h6>"
 
-        } 
+        } else if (flag === "status") {
+            let msg;
+            if (isNaN(currROI)) {
+                msg = `<li>${currROI}</li>`;
+            } else {
+                msg = `<li>Current ROI for an upvote :${currROI} after curation reward</li>`
+            }
+
+            body = `Hi @${parent_author}, this is the current status of bot : \n\n` +
+                `<ul><li>Voting power : ${VP}%</li>` + `<li>Time until next vote : ${timeTilFullPower}</li>` + msg
+                + `<li>Vote value : ${voteValue}$</li></ul>`
+        }
 
         const permlink = Math.random()
             .toString(36)
